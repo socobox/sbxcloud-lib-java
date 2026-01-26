@@ -6,7 +6,7 @@
 
     <groupId>com.sbxcloud</groupId>
     <artifactId>sbxcloud-lib-java</artifactId>
-    <version>0.0.8</version>
+    <version>0.0.9-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>SBX Java Client Library</name>
