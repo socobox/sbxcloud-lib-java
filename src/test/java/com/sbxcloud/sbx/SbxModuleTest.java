@@ -1,14 +1,11 @@
 package com.sbxcloud.sbx;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.sbxcloud.sbx.annotation.SbxEntity;
 import com.sbxcloud.sbx.annotation.SbxModel;
 import com.sbxcloud.sbx.jackson.SbxModule;
-import com.sbxcloud.sbx.jackson.SbxNamingStrategy;
 import com.sbxcloud.sbx.model.SBXMeta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -114,11 +111,9 @@ class SbxModuleTest {
         assertEquals(original.name(), deserialized.name());
     }
 
-    // Test entities using SbxNamingStrategy - no @JsonProperty needed!
+    // Test entities - single @SbxModel annotation does everything!
 
     @SbxModel("test")
-    @JsonNaming(SbxNamingStrategy.class)
-    @JsonIgnoreProperties(ignoreUnknown = true)
     record TestEntity(
             String key,      // Auto-mapped to _KEY
             SBXMeta meta,    // Auto-mapped to _META
@@ -126,8 +121,6 @@ class SbxModuleTest {
     ) implements SbxEntity {}
 
     @SbxModel("test_fields")
-    @JsonNaming(SbxNamingStrategy.class)
-    @JsonIgnoreProperties(ignoreUnknown = true)
     record TestEntityWithFields(
             String key,
             SBXMeta meta,
