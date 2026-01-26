@@ -6,22 +6,17 @@ import com.sbxcloud.sbx.annotation.SbxModel;
 /**
  * Test model for inventory_history records in SBX domain 96.
  * <p>
- * Single annotation does everything - no @JsonProperty, @JsonNaming, or @JsonIgnoreProperties needed!
+ * No convenience constructor needed - use Sbx.create() instead:
+ * <pre>{@code
+ * var entity = Sbx.create(InventoryHistory.class, "masterlist", 20250126, 1.99, 100);
+ * }</pre>
  */
 @SbxModel("inventory_history")
 public record InventoryHistory(
-        String key,           // Auto-mapped to _KEY
-        SBXMeta meta,         // Auto-mapped to _META
+        String key,
+        SBXMeta meta,
         String masterlist,
         Integer week,
         Double price,
         Integer quantity
-) implements SbxEntity {
-
-    /**
-     * Convenience constructor for creating new entities (without key/meta).
-     */
-    public InventoryHistory(String masterlist, Integer week, Double price, Integer quantity) {
-        this(null, null, masterlist, week, price, quantity);
-    }
-}
+) implements SbxEntity {}

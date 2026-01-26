@@ -17,7 +17,7 @@ Java 21+ client for SBX Cloud APIs. Spring Boot 3.x compatible.
 <dependency>
     <groupId>com.github.socobox</groupId>
     <artifactId>sbxcloud-lib-java</artifactId>
-    <version>v0.0.11</version>
+    <version>v0.0.13</version>
 </dependency>
 ```
 
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.11'
+    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.13'
 }
 ```
 
@@ -51,13 +51,7 @@ public record Contact(
     String name,
     String email,
     String status
-) implements SbxEntity {
-
-    // Constructor for creating new records (without key/meta)
-    public Contact(String name, String email, String status) {
-        this(null, null, name, email, status);
-    }
-}
+) implements SbxEntity {}
 ```
 
 ### 2. Initialize the Service
@@ -81,8 +75,8 @@ var sbx = SBXServiceFactory.builder()
 // Get typed repository
 SbxRepository<Contact> contacts = sbx.repository(Contact.class);
 
-// Create (meta is ignored, null values are ignored)
-var contact = new Contact("John Doe", "john@example.com", "ACTIVE");
+// Create using Sbx.create() - automatically sets key and meta to null
+var contact = Sbx.create(Contact.class, "John Doe", "john@example.com", "ACTIVE");
 String key = contacts.save(contact);
 
 // Read
@@ -211,22 +205,19 @@ The `@SbxModel` annotation automatically:
 - Ignores unknown JSON properties
 - Strips null values (enables partial updates)
 
-### With Convenience Constructor
+### Creating Entities with Sbx.create()
+
+Instead of manual convenience constructors, use `Sbx.create()`:
 
 ```java
-@SbxModel("contact")
-public record Contact(
-    String key,
-    SBXMeta meta,
-    String name,
-    String email
-) implements SbxEntity {
+// No need to add a convenience constructor to your record!
+// Sbx.create() automatically sets key and meta to null
 
-    // For creating new records
-    public Contact(String name, String email) {
-        this(null, null, name, email);
-    }
-}
+var contact = Sbx.create(Contact.class, "John", "john@example.com");
+// Equivalent to: new Contact(null, null, "John", "john@example.com")
+
+// Pass field values in order (excluding key and meta)
+String key = contacts.save(contact);
 ```
 
 ### Without Repository (Manual Jackson)
@@ -268,6 +259,9 @@ sbx.delete("contact", List.of("k1", "k2", "k3"));
 
 ```java
 import static com.sbxcloud.sbx.util.Sbx.*;
+
+// Create entities (automatically sets key and meta to null)
+var contact = create(Contact.class, "John", "john@example.com", "ACTIVE");
 
 // JSON conversion
 String json = toJson(entity);

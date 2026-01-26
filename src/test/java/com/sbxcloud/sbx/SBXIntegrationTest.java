@@ -5,6 +5,7 @@ import com.sbxcloud.sbx.client.SBXServiceFactory;
 import com.sbxcloud.sbx.model.InventoryHistory;
 import com.sbxcloud.sbx.query.FindQuery;
 import com.sbxcloud.sbx.repository.SbxRepository;
+import com.sbxcloud.sbx.util.Sbx;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
@@ -209,8 +210,9 @@ class SBXIntegrationTest {
     @Test
     @Order(12)
     void testCreateWithEntity() {
-        // Create entity using constructor
-        var entity = new InventoryHistory("test-entity-" + System.currentTimeMillis(), 20250126, 3.99, 100);
+        // Create entity using Sbx.create() - no manual constructor needed
+        var entity = Sbx.create(InventoryHistory.class,
+                "test-entity-" + System.currentTimeMillis(), 20250126, 3.99, 100);
 
         var response = sbx.create(entity);
 
@@ -239,14 +241,14 @@ class SBXIntegrationTest {
 
         var existing = findResponse.results().get(0);
 
-        // Create updated entity with new price
+        // Partial update - only key and changed field (price)
         var updated = new InventoryHistory(
                 existing.key(),
-                existing.meta(),
-                existing.masterlist(),
-                existing.week(),
-                9.99, // new price
-                existing.quantity()
+                null,  // meta is ignored
+                null,  // masterlist unchanged
+                null,  // week unchanged
+                9.99,  // new price
+                null   // quantity unchanged
         );
 
         var response = sbx.update(updated);
@@ -283,8 +285,9 @@ class SBXIntegrationTest {
     @Test
     @Order(15)
     void testDeleteWithClassAndKey() {
-        // Create a new record to delete
-        var entity = new InventoryHistory("delete-test-" + System.currentTimeMillis(), 20250126, 0.99, 1);
+        // Create a new record to delete using Sbx.create()
+        var entity = Sbx.create(InventoryHistory.class,
+                "delete-test-" + System.currentTimeMillis(), 20250126, 0.99, 1);
         var createResponse = sbx.create(entity);
         assertTrue(createResponse.success());
 
@@ -315,8 +318,9 @@ class SBXIntegrationTest {
     void testRepositorySaveAndFindById() {
         SbxRepository<InventoryHistory> repo = sbx.repository(InventoryHistory.class);
 
-        // Create
-        var entity = new InventoryHistory("repo-test-" + System.currentTimeMillis(), 20250126, 5.99, 25);
+        // Create using Sbx.create()
+        var entity = Sbx.create(InventoryHistory.class,
+                "repo-test-" + System.currentTimeMillis(), 20250126, 5.99, 25);
         String key = repo.save(entity);
 
         assertNotNull(key);
