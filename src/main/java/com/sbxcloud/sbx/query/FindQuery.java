@@ -1,5 +1,6 @@
 package com.sbxcloud.sbx.query;
 
+import com.sbxcloud.sbx.annotation.SbxModels;
 import com.sbxcloud.sbx.model.*;
 
 import java.util.ArrayList;
@@ -40,10 +41,20 @@ public class FindQuery {
     }
 
     /**
-     * Creates a new query for the given model.
+     * Creates a new query for the given model name.
      */
     public static FindQuery from(String model) {
         return new FindQuery(model);
+    }
+
+    /**
+     * Creates a new query for a class annotated with @SbxModel.
+     *
+     * @param type class annotated with @SbxModel
+     * @throws IllegalArgumentException if class is not annotated
+     */
+    public static FindQuery from(Class<?> type) {
+        return new FindQuery(SbxModels.getModelName(type));
     }
 
     // ==================== Group Operations ====================

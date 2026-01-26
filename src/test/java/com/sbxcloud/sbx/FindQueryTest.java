@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sbxcloud.sbx.model.AndOr;
 import com.sbxcloud.sbx.model.Operation;
 import com.sbxcloud.sbx.model.WhereClause;
+import com.sbxcloud.sbx.model.InventoryHistory;
 import com.sbxcloud.sbx.query.FindQuery;
 import org.junit.jupiter.api.Test;
 
@@ -154,5 +155,26 @@ class FindQueryTest {
         var conditions = (WhereClause.Conditions) query.where();
         var expr = conditions.groups().get(0).group().get(0);
         assertEquals("%100%", expr.value());
+    }
+
+    @Test
+    void shouldBuildQueryFromAnnotatedClass() {
+        // InventoryHistory is annotated with @SbxModel("inventory_history")
+        var query = FindQuery.from(InventoryHistory.class)
+                .andWhereIsGreaterThan("price", 10)
+                .setPageSize(25)
+                .compile();
+
+        assertEquals("inventory_history", query.rowModel());
+        assertNotNull(query.where());
+        assertEquals(25, query.size());
+    }
+
+    @Test
+    void shouldThrowForNonAnnotatedClass() {
+        // String is not annotated with @SbxModel
+        assertThrows(IllegalArgumentException.class, () -> {
+            FindQuery.from(String.class);
+        });
     }
 }

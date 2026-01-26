@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.sbxcloud.sbx.annotation.SbxEntity;
+import com.sbxcloud.sbx.annotation.SbxModels;
 import com.sbxcloud.sbx.exception.SBXException;
 import com.sbxcloud.sbx.model.*;
 import com.sbxcloud.sbx.query.FindQuery;
@@ -199,6 +201,119 @@ public class SBXService {
      */
     public SBXResponse<Void> delete(String model, String key) {
         return delete(model, List.of(key));
+    }
+
+    // ==================== Type-safe Operations (with @SbxModel) ====================
+
+    /**
+     * Finds all records for an @SbxModel annotated class.
+     *
+     * @param type class annotated with @SbxModel
+     * @return find response with results
+     */
+    public <T> SBXFindResponse<T> find(Class<T> type) {
+        return find(FindQuery.from(type), type);
+    }
+
+    /**
+     * Creates a new record from an @SbxModel annotated entity.
+     * Model name is inferred from the @SbxModel annotation.
+     *
+     * @param entity the entity to create
+     * @return response with created key
+     */
+    public <T> SBXResponse<T> create(T entity) {
+        String model = SbxModels.getModelName(entity.getClass());
+        Map<String, Object> row = objectMapper.convertValue(entity, new TypeReference<>() {});
+        return create(model, row);
+    }
+
+    /**
+     * Creates multiple records from @SbxModel annotated entities.
+     * Model name is inferred from the @SbxModel annotation of the first entity.
+     *
+     * @param entities the entities to create
+     * @return response with created keys
+     */
+    @SafeVarargs
+    public final <T> SBXResponse<T> create(T... entities) {
+        if (entities == null || entities.length == 0) {
+            return SBXResponse.failure("No entities provided");
+        }
+        String model = SbxModels.getModelName(entities[0].getClass());
+        List<Map<String, Object>> rows = Arrays.stream(entities)
+                .map(e -> objectMapper.convertValue(e, new TypeReference<Map<String, Object>>() {}))
+                .toList();
+        return create(model, rows);
+    }
+
+    /**
+     * Updates an @SbxModel annotated entity.
+     * The entity must have a non-null key.
+     *
+     * @param entity the entity to update
+     * @return response
+     */
+    public <T> SBXResponse<T> update(T entity) {
+        String model = SbxModels.getModelName(entity.getClass());
+        Map<String, Object> row = objectMapper.convertValue(entity, new TypeReference<>() {});
+        return update(model, row);
+    }
+
+    /**
+     * Updates multiple @SbxModel annotated entities.
+     *
+     * @param entities the entities to update
+     * @return response
+     */
+    @SafeVarargs
+    public final <T> SBXResponse<T> update(T... entities) {
+        if (entities == null || entities.length == 0) {
+            return SBXResponse.failure("No entities provided");
+        }
+        String model = SbxModels.getModelName(entities[0].getClass());
+        List<Map<String, Object>> rows = Arrays.stream(entities)
+                .map(e -> objectMapper.convertValue(e, new TypeReference<Map<String, Object>>() {}))
+                .toList();
+        return update(model, rows);
+    }
+
+    /**
+     * Deletes an @SbxEntity by extracting its key.
+     *
+     * @param entity the entity to delete (must implement SbxEntity)
+     * @return response
+     */
+    public <T extends SbxEntity> SBXResponse<Void> delete(T entity) {
+        if (entity.key() == null) {
+            return SBXResponse.failure("Entity has no key");
+        }
+        String model = SbxModels.getModelName(entity.getClass());
+        return delete(model, entity.key());
+    }
+
+    /**
+     * Deletes records by keys using @SbxModel annotation for model name.
+     *
+     * @param type class annotated with @SbxModel
+     * @param keys the keys to delete
+     * @return response
+     */
+    public SBXResponse<Void> delete(Class<?> type, String... keys) {
+        String model = SbxModels.getModelName(type);
+        return delete(model, List.of(keys));
+    }
+
+    /**
+     * Deletes records by keys using @SbxModel annotation for model name.
+     *
+     * @param type class annotated with @SbxModel
+     * @param keys the keys to delete
+     * @return response
+     */
+    public SBXResponse<Void> delete(Class<?> type, List<String> keys) {
+        String model = SbxModels.getModelName(type);
+        return delete(model, keys);
     }
 
     // ==================== Authentication ====================

@@ -179,4 +179,120 @@ class SBXIntegrationTest {
         assertTrue(response.success(), "FindAll should succeed: " + response.error());
         System.out.println("FindAll returned " + (response.results() != null ? response.results().size() : 0) + " total records");
     }
+
+    // ==================== Type-safe Annotation Tests ====================
+
+    @Test
+    @Order(10)
+    void testFindWithAnnotatedClass() {
+        // Uses @SbxModel annotation to infer model name
+        var query = FindQuery.from(InventoryHistory.class)
+                .setPageSize(5);
+
+        var response = sbx.find(query, InventoryHistory.class);
+
+        assertTrue(response.success(), "Find with annotated class should succeed: " + response.error());
+        System.out.println("Found " + (response.results() != null ? response.results().size() : 0) + " records using @SbxModel");
+    }
+
+    @Test
+    @Order(11)
+    void testSimpleFindWithClass() {
+        // Simplest form - just pass the class
+        var response = sbx.find(InventoryHistory.class);
+
+        assertTrue(response.success(), "Simple find should succeed: " + response.error());
+        System.out.println("Simple find returned " + (response.results() != null ? response.results().size() : 0) + " records");
+    }
+
+    @Test
+    @Order(12)
+    void testCreateWithEntity() {
+        // Create entity using constructor
+        var entity = new InventoryHistory("test-entity-" + System.currentTimeMillis(), 20250126, 3.99, 100);
+
+        var response = sbx.create(entity);
+
+        assertTrue(response.success(), "Create with entity should succeed: " + response.error());
+        assertNotNull(response.keys());
+        assertFalse(response.keys().isEmpty());
+
+        createdKey = response.keys().get(0);
+        System.out.println("Created using entity: " + createdKey);
+    }
+
+    @Test
+    @Order(13)
+    void testUpdateWithEntity() {
+        if (createdKey == null) {
+            System.out.println("Skipping - no created key");
+            return;
+        }
+
+        // Fetch the entity first
+        var query = FindQuery.from(InventoryHistory.class).whereWithKeys(createdKey);
+        var findResponse = sbx.find(query, InventoryHistory.class);
+        assertTrue(findResponse.success());
+        assertNotNull(findResponse.results());
+        assertFalse(findResponse.results().isEmpty());
+
+        var existing = findResponse.results().get(0);
+
+        // Create updated entity with new price
+        var updated = new InventoryHistory(
+                existing.key(),
+                existing.meta(),
+                existing.masterlist(),
+                existing.week(),
+                9.99, // new price
+                existing.quantity()
+        );
+
+        var response = sbx.update(updated);
+
+        assertTrue(response.success(), "Update with entity should succeed: " + response.error());
+        System.out.println("Updated entity price to 9.99");
+    }
+
+    @Test
+    @Order(14)
+    void testDeleteWithEntity() {
+        if (createdKey == null) {
+            System.out.println("Skipping - no created key");
+            return;
+        }
+
+        // Fetch entity to delete
+        var query = FindQuery.from(InventoryHistory.class).whereWithKeys(createdKey);
+        var findResponse = sbx.find(query, InventoryHistory.class);
+        assertTrue(findResponse.success());
+        assertNotNull(findResponse.results());
+
+        if (!findResponse.results().isEmpty()) {
+            var entity = findResponse.results().get(0);
+
+            // Delete using entity
+            var response = sbx.delete(entity);
+
+            assertTrue(response.success(), "Delete with entity should succeed: " + response.error());
+            System.out.println("Deleted entity: " + entity.key());
+        }
+    }
+
+    @Test
+    @Order(15)
+    void testDeleteWithClassAndKey() {
+        // Create a new record to delete
+        var entity = new InventoryHistory("delete-test-" + System.currentTimeMillis(), 20250126, 0.99, 1);
+        var createResponse = sbx.create(entity);
+        assertTrue(createResponse.success());
+
+        String keyToDelete = createResponse.keys().get(0);
+
+        // Delete using class and key
+        var response = sbx.delete(InventoryHistory.class, keyToDelete);
+
+        assertTrue(response.success(), "Delete with class and key should succeed: " + response.error());
+        System.out.println("Deleted with class and key: " + keyToDelete);
+    }
 }

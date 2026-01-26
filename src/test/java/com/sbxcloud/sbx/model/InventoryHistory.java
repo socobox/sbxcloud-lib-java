@@ -2,10 +2,13 @@ package com.sbxcloud.sbx.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.sbxcloud.sbx.annotation.SbxEntity;
+import com.sbxcloud.sbx.annotation.SbxModel;
 
 /**
  * Test model for inventory_history records in SBX domain 96.
  */
+@SbxModel("inventory_history")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record InventoryHistory(
         @JsonProperty("_KEY") String key,
@@ -14,7 +17,7 @@ public record InventoryHistory(
         Integer week,
         Double price,
         Integer quantity
-) {
+) implements SbxEntity {
     public InventoryHistory(String masterlist, Integer week, Double price, Integer quantity) {
         this(null, null, masterlist, week, price, quantity);
     }
