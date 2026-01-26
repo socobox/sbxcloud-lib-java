@@ -138,7 +138,7 @@ jobs:
           echo '</repositories>' >> CHANGELOG_BODY.md
           echo '' >> CHANGELOG_BODY.md
           echo '<dependency>' >> CHANGELOG_BODY.md
-          echo '    <groupId>com.github.sbxcloud</groupId>' >> CHANGELOG_BODY.md
+          echo '    <groupId>com.github.socobox</groupId>' >> CHANGELOG_BODY.md
           echo '    <artifactId>sbx-lib-java</artifactId>' >> CHANGELOG_BODY.md
           echo "    <version>v${{ steps.next_version.outputs.version }}</version>" >> CHANGELOG_BODY.md
           echo '</dependency>' >> CHANGELOG_BODY.md

@@ -19,7 +19,7 @@ Lightweight Java client for SBX Cloud APIs. Compatible with Java 21+ and Spring 
 <dependency>
     <groupId>com.github.socobox</groupId>
     <artifactId>sbxcloud-lib-java</artifactId>
-    <version>v1.0.0</version>
+    <version>v0.0.2</version>
 </dependency>
 ```
 
@@ -31,11 +31,11 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.socobox:sbxcloud-lib-java:v1.0.0'
+    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.2'
 }
 ```
 
-> Replace `v1.0.0` with the latest release tag or use `main-SNAPSHOT` for the latest commit.
+> Replace `v0.0.2` with the latest release tag or use `main-SNAPSHOT` for the latest commit.
 
 ### Local Build
 
