@@ -309,11 +309,12 @@ The library provides a Spring Data-like repository pattern for type-safe, boiler
 ### Define Your Entity
 
 ```java
-@SbxModel("contact")  // Maps to SBX model name
+@SbxModel("contact")                      // Maps to SBX model name
+@JsonNaming(SbxNamingStrategy.class)      // Auto-maps key→_KEY, meta→_META
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Contact(
-    @JsonProperty("_KEY") String key,
-    @JsonProperty("_META") SBXMeta meta,
+    String key,        // Automatically mapped to _KEY
+    SBXMeta meta,      // Automatically mapped to _META
     String name,
     String email,
     String status
@@ -403,25 +404,26 @@ contacts.query().where(...).execute();       // Full SBXFindResponse<T>
 The library uses Java records for immutable data classes:
 
 ```java
-// Simple model (without repository pattern)
+// Full repository pattern (recommended)
+@SbxModel("contact")
+@JsonNaming(SbxNamingStrategy.class)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record Contact(
-    @JsonProperty("_KEY") String key,
+    String key,
+    SBXMeta meta,
     String name,
     String email,
-    String status,
-    @JsonProperty("_META") SBXMeta meta
-) {}
+    String status
+) implements SbxEntity {}
 
-// With repository pattern
-@SbxModel("contact")
-@JsonIgnoreProperties(ignoreUnknown = true)
+// Simple model (without repository, needs @JsonProperty)
 public record Contact(
     @JsonProperty("_KEY") String key,
     @JsonProperty("_META") SBXMeta meta,
     String name,
     String email,
     String status
-) implements SbxEntity {}
+) {}
 ```
 
 ## Error Handling
