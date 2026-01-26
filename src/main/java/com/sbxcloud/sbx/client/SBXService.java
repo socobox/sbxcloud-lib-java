@@ -839,9 +839,9 @@ public class SBXService {
         }
 
         try {
-            // Clean _META from rows before sending
+            // Clean rows for upsert (remove meta, nulls)
             List<Map<String, Object>> cleanedRows = rows.stream()
-                    .map(this::cleanMeta)
+                    .map(this::cleanForUpsert)
                     .toList();
 
             List<String> allKeys = new ArrayList<>();
@@ -870,9 +870,29 @@ public class SBXService {
         }
     }
 
-    private Map<String, Object> cleanMeta(Map<String, Object> row) {
-        var cleaned = new LinkedHashMap<>(row);
-        cleaned.remove("_META");
+    /**
+     * Cleans a row for create/update:
+     * - Removes _META/meta (read-only)
+     * - Removes null values (allows partial updates)
+     */
+    private Map<String, Object> cleanForUpsert(Map<String, Object> row) {
+        var cleaned = new LinkedHashMap<String, Object>();
+        for (var entry : row.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+
+            // Skip meta fields (read-only)
+            if ("_META".equals(key) || "meta".equals(key)) {
+                continue;
+            }
+
+            // Skip null values (allows partial updates)
+            if (value == null) {
+                continue;
+            }
+
+            cleaned.put(key, value);
+        }
         return cleaned;
     }
 

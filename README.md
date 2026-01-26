@@ -81,7 +81,7 @@ var sbx = SBXServiceFactory.builder()
 // Get typed repository
 SbxRepository<Contact> contacts = sbx.repository(Contact.class);
 
-// Create
+// Create (meta is ignored, null values are ignored)
 var contact = new Contact("John Doe", "john@example.com", "ACTIVE");
 String key = contacts.save(contact);
 
@@ -89,13 +89,18 @@ String key = contacts.save(contact);
 Optional<Contact> found = contacts.findById(key);
 List<Contact> all = contacts.findAll();
 
-// Update
-var updated = new Contact(key, found.get().meta(), "John Updated", "john@example.com", "ACTIVE");
-contacts.save(updated);  // Has key, so updates
+// Update - only _KEY and changed fields needed (partial update)
+var updated = new Contact(key, null, "John Updated", null, null);
+contacts.save(updated);  // Only updates name, other fields unchanged
 
 // Delete
 contacts.deleteById(key);
 ```
+
+**Important:**
+- `meta` is read-only and always stripped before create/update
+- `null` values are stripped, enabling partial updates
+- For updates, only `key` + changed fields are required
 
 ---
 
@@ -192,8 +197,8 @@ repo.query().whereKeys("k1", "k2").list()
 ```java
 @SbxModel("contact")
 public record Contact(
-    String key,
-    SBXMeta meta,
+    String key,          // Primary key (_KEY) - null for new records
+    SBXMeta meta,        // Read-only metadata (_META) - always null for create/update
     String name,
     String email
 ) implements SbxEntity {}
@@ -202,8 +207,9 @@ public record Contact(
 The `@SbxModel` annotation automatically:
 - Sets the SBX model name for queries
 - Maps `key` → `_KEY` in JSON
-- Maps `meta` → `_META` in JSON
+- Maps `meta` → `_META` in JSON (read-only, stripped on create/update)
 - Ignores unknown JSON properties
+- Strips null values (enables partial updates)
 
 ### With Convenience Constructor
 
