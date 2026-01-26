@@ -123,7 +123,7 @@ public class FindQuery {
     }
 
     /**
-     * Adds an AND condition: field < value
+     * Adds an AND condition: field is less than value
      */
     public FindQuery andWhereIsLessThan(String field, Object value) {
         ensureGroup();
@@ -132,7 +132,7 @@ public class FindQuery {
     }
 
     /**
-     * Adds an AND condition: field <= value
+     * Adds an AND condition: field is less than or equal to value
      */
     public FindQuery andWhereIsLessOrEqualTo(String field, Object value) {
         ensureGroup();
@@ -257,7 +257,7 @@ public class FindQuery {
     }
 
     /**
-     * Adds an OR condition: field < value
+     * Adds an OR condition: field is less than value
      */
     public FindQuery orWhereIsLessThan(String field, Object value) {
         ensureGroup();
@@ -266,7 +266,7 @@ public class FindQuery {
     }
 
     /**
-     * Adds an OR condition: field <= value
+     * Adds an OR condition: field is less than or equal to value
      */
     public FindQuery orWhereIsLessOrEqualTo(String field, Object value) {
         ensureGroup();
