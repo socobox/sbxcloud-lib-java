@@ -95,6 +95,7 @@ replay_pid*
 
 # Claude Code
 .claude/
+CLAUDE.md
 
 # JetBrains
 cmake-build-*/
@@ -115,4 +116,3 @@ cmake-build-*/
 .idea/**/gradle.xml
 .idea/**/libraries
 .idea/**/mongoSettings.xml
-*.iws

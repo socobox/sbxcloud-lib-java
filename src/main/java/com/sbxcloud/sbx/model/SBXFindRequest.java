@@ -11,33 +11,45 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record SBXFindRequest(
         @JsonProperty("row_model") String rowModel,
-        List<LogicalGroup> where,
+        String domain,
+        WhereClause where,
         Integer page,
         Integer size,
         @JsonProperty("fetch") List<String> fetchModels,
         @JsonProperty("rfetch") List<String> fetchReferencingModels,
-        @JsonProperty("autowire") List<String> autowire,
-        List<String> keys
+        @JsonProperty("autowire") List<String> autowire
 ) {
     public static Builder builder(String model) {
         return new Builder(model);
     }
 
+    /**
+     * Returns a copy of this request with the given domain.
+     */
+    public SBXFindRequest withDomain(int domain) {
+        return new SBXFindRequest(rowModel, String.valueOf(domain), where, page, size, fetchModels, fetchReferencingModels, autowire);
+    }
+
     public static class Builder {
         private final String rowModel;
-        private List<LogicalGroup> where;
+        private String domain;
+        private WhereClause where;
         private Integer page;
         private Integer size;
         private List<String> fetchModels;
         private List<String> fetchReferencingModels;
         private List<String> autowire;
-        private List<String> keys;
 
         private Builder(String rowModel) {
             this.rowModel = rowModel;
         }
 
-        public Builder where(List<LogicalGroup> where) {
+        public Builder domain(int domain) {
+            this.domain = String.valueOf(domain);
+            return this;
+        }
+
+        public Builder where(WhereClause where) {
             this.where = where;
             return this;
         }
@@ -67,13 +79,8 @@ public record SBXFindRequest(
             return this;
         }
 
-        public Builder keys(List<String> keys) {
-            this.keys = keys;
-            return this;
-        }
-
         public SBXFindRequest build() {
-            return new SBXFindRequest(rowModel, where, page, size, fetchModels, fetchReferencingModels, autowire, keys);
+            return new SBXFindRequest(rowModel, domain, where, page, size, fetchModels, fetchReferencingModels, autowire);
         }
     }
 }

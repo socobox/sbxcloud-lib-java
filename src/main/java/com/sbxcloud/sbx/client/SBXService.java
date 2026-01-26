@@ -65,14 +65,15 @@ public class SBXService {
      * Finds records matching the query.
      */
     public <T> SBXFindResponse<T> find(SBXFindRequest request, Class<T> type) {
+        var requestWithDomain = request.withDomain(domain);
         if (debug) {
-            log.info("SBX find: {}", request);
+            log.info("SBX find: {}", requestWithDomain);
         }
 
         try {
             var response = restClient.post()
                     .uri("/api/data/v1/row/find")
-                    .body(request)
+                    .body(requestWithDomain)
                     .retrieve()
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
@@ -141,7 +142,7 @@ public class SBXService {
      * Creates new records.
      */
     public <T> SBXResponse<T> create(String model, List<Map<String, Object>> rows) {
-        return upsert("/api/data/v1/row/insert", model, rows, true);
+        return upsert("/api/data/v1/row", model, rows, true);
     }
 
     /**
@@ -175,7 +176,7 @@ public class SBXService {
 
         try {
             for (List<String> chunk : partition(keys, DEFAULT_CHUNK_SIZE)) {
-                var request = SBXDeleteRequest.of(model, chunk);
+                var request = SBXDeleteRequest.of(model, domain, chunk);
                 var response = restClient.post()
                         .uri("/api/data/v1/row/delete")
                         .body(request)
@@ -698,7 +699,7 @@ public class SBXService {
             List<String> allKeys = new ArrayList<>();
 
             for (List<Map<String, Object>> chunk : partition(cleanedRows, DEFAULT_CHUNK_SIZE)) {
-                var request = SBXUpsertRequest.of(model, chunk);
+                var request = SBXUpsertRequest.of(model, domain, chunk);
                 var response = restClient.post()
                         .uri(endpoint)
                         .body(request)

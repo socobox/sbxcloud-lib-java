@@ -12,13 +12,14 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record SBXUpsertRequest(
         @JsonProperty("row_model") String rowModel,
+        String domain,
         List<Map<String, Object>> rows
 ) {
-    public static SBXUpsertRequest of(String model, List<Map<String, Object>> rows) {
-        return new SBXUpsertRequest(model, rows);
+    public static SBXUpsertRequest of(String model, int domain, List<Map<String, Object>> rows) {
+        return new SBXUpsertRequest(model, String.valueOf(domain), rows);
     }
 
-    public static SBXUpsertRequest ofSingle(String model, Map<String, Object> row) {
-        return new SBXUpsertRequest(model, List.of(row));
+    public static SBXUpsertRequest ofSingle(String model, int domain, Map<String, Object> row) {
+        return of(model, domain, List.of(row));
     }
 }

@@ -3,6 +3,7 @@ package com.sbxcloud.sbx;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sbxcloud.sbx.model.AndOr;
 import com.sbxcloud.sbx.model.Operation;
+import com.sbxcloud.sbx.model.WhereClause;
 import com.sbxcloud.sbx.query.FindQuery;
 import org.junit.jupiter.api.Test;
 
@@ -22,11 +23,14 @@ class FindQueryTest {
 
         assertEquals("contact", query.rowModel());
         assertNotNull(query.where());
-        assertEquals(1, query.where().size());
-        assertEquals(AndOr.AND, query.where().get(0).andOr());
-        assertEquals(1, query.where().get(0).group().size());
+        assertInstanceOf(WhereClause.Conditions.class, query.where());
 
-        var expr = query.where().get(0).group().get(0);
+        var conditions = (WhereClause.Conditions) query.where();
+        assertEquals(1, conditions.groups().size());
+        assertEquals(AndOr.AND, conditions.groups().get(0).andOr());
+        assertEquals(1, conditions.groups().get(0).group().size());
+
+        var expr = conditions.groups().get(0).group().get(0);
         assertEquals("status", expr.field());
         assertEquals(Operation.EQUAL, expr.operation());
         assertEquals("ACTIVE", expr.value());
@@ -44,15 +48,16 @@ class FindQueryTest {
                 .compile();
 
         assertEquals("contact", query.rowModel());
-        assertEquals(2, query.where().size());
+        var conditions = (WhereClause.Conditions) query.where();
+        assertEquals(2, conditions.groups().size());
 
         // First group: AND
-        assertEquals(AndOr.AND, query.where().get(0).andOr());
-        assertEquals(2, query.where().get(0).group().size());
+        assertEquals(AndOr.AND, conditions.groups().get(0).andOr());
+        assertEquals(2, conditions.groups().get(0).group().size());
 
         // Second group: OR
-        assertEquals(AndOr.OR, query.where().get(1).andOr());
-        assertEquals(2, query.where().get(1).group().size());
+        assertEquals(AndOr.OR, conditions.groups().get(1).andOr());
+        assertEquals(2, conditions.groups().get(1).group().size());
     }
 
     @Test
@@ -86,7 +91,11 @@ class FindQueryTest {
                 .whereWithKeys("key1", "key2", "key3")
                 .compile();
 
-        assertEquals(List.of("key1", "key2", "key3"), query.keys());
+        assertNotNull(query.where());
+        assertInstanceOf(WhereClause.Keys.class, query.where());
+
+        var keysClause = (WhereClause.Keys) query.where();
+        assertEquals(List.of("key1", "key2", "key3"), keysClause.keys());
     }
 
     @Test
@@ -95,7 +104,8 @@ class FindQueryTest {
                 .andWhereIsIn("status", "ACTIVE", "PENDING")
                 .compile();
 
-        var expr = query.where().get(0).group().get(0);
+        var conditions = (WhereClause.Conditions) query.where();
+        var expr = conditions.groups().get(0).group().get(0);
         assertEquals(Operation.IN, expr.operation());
         assertEquals(List.of("ACTIVE", "PENDING"), expr.value());
     }
@@ -107,13 +117,14 @@ class FindQueryTest {
                 .andWhereIsNotNull("email")
                 .compile();
 
-        assertEquals(2, query.where().get(0).group().size());
+        var conditions = (WhereClause.Conditions) query.where();
+        assertEquals(2, conditions.groups().get(0).group().size());
 
-        var nullExpr = query.where().get(0).group().get(0);
+        var nullExpr = conditions.groups().get(0).group().get(0);
         assertEquals(Operation.IS, nullExpr.operation());
         assertNull(nullExpr.value());
 
-        var notNullExpr = query.where().get(0).group().get(1);
+        var notNullExpr = conditions.groups().get(0).group().get(1);
         assertEquals(Operation.IS_NOT, notNullExpr.operation());
         assertNull(notNullExpr.value());
     }
@@ -126,7 +137,8 @@ class FindQueryTest {
                 .andWhereContains("address", "Street")
                 .compile();
 
-        var group = query.where().get(0).group();
+        var conditions = (WhereClause.Conditions) query.where();
+        var group = conditions.groups().get(0).group();
 
         assertEquals("John%", group.get(0).value());
         assertEquals("%@example.com", group.get(1).value());
@@ -139,7 +151,8 @@ class FindQueryTest {
                 .andWhereContains("name", "100%")
                 .compile();
 
-        var expr = query.where().get(0).group().get(0);
+        var conditions = (WhereClause.Conditions) query.where();
+        var expr = conditions.groups().get(0).group().get(0);
         assertEquals("%100%", expr.value());
     }
 }

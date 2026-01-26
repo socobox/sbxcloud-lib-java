@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Request payload for delete operations.
@@ -11,13 +12,14 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record SBXDeleteRequest(
         @JsonProperty("row_model") String rowModel,
-        List<String> keys
+        String domain,
+        Map<String, List<String>> where
 ) {
-    public static SBXDeleteRequest of(String model, List<String> keys) {
-        return new SBXDeleteRequest(model, keys);
+    public static SBXDeleteRequest of(String model, int domain, List<String> keys) {
+        return new SBXDeleteRequest(model, String.valueOf(domain), Map.of("keys", keys));
     }
 
-    public static SBXDeleteRequest ofSingle(String model, String key) {
-        return new SBXDeleteRequest(model, List.of(key));
+    public static SBXDeleteRequest ofSingle(String model, int domain, String key) {
+        return of(model, domain, List.of(key));
     }
 }

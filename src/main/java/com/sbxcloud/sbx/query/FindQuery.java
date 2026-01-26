@@ -426,15 +426,24 @@ public class FindQuery {
      * Compiles the query into a request payload.
      */
     public SBXFindRequest compile() {
+        WhereClause whereClause;
+        if (keys != null && !keys.isEmpty()) {
+            whereClause = WhereClause.keys(keys);
+        } else if (!groups.isEmpty()) {
+            whereClause = WhereClause.conditions(groups);
+        } else {
+            whereClause = null;
+        }
+
         return new SBXFindRequest(
                 model,
-                groups.isEmpty() ? null : groups,
+                null, // domain is added by SBXService
+                whereClause,
                 page,
                 pageSize,
                 fetchModels,
                 fetchReferencingModels,
-                autowire,
-                keys
+                autowire
         );
     }
 
