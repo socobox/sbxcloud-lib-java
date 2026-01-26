@@ -1,12 +1,10 @@
 # SBX Java Client Library
 
-Lightweight Java client for SBX Cloud APIs. Compatible with Java 21+ and Spring Boot 3.x.
+Java 21+ client for SBX Cloud APIs. Spring Boot 3.x compatible.
 
 ## Installation
 
-### Via JitPack (Recommended)
-
-**Maven:**
+### Maven (JitPack)
 
 ```xml
 <repositories>
@@ -19,11 +17,11 @@ Lightweight Java client for SBX Cloud APIs. Compatible with Java 21+ and Spring 
 <dependency>
     <groupId>com.github.socobox</groupId>
     <artifactId>sbxcloud-lib-java</artifactId>
-    <version>v0.0.6</version>
+    <version>v0.0.11</version>
 </dependency>
 ```
 
-**Gradle:**
+### Gradle
 
 ```groovy
 repositories {
@@ -31,285 +29,22 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.6'
+    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.11'
 }
 ```
 
-> Replace `v0.0.6` with the latest release tag or use `main-SNAPSHOT` for the latest commit.
-
-### Local Build
-
-```xml
-<dependency>
-    <groupId>com.sbxcloud</groupId>
-    <artifactId>sbxcloud-lib-java</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-</dependency>
-```
+---
 
 ## Quick Start
 
-### With Spring Boot (Auto-configuration)
-
-Add to `application.properties`:
-
-```properties
-sbx.app-key=your-app-key-uuid
-sbx.token=your-bearer-token
-sbx.domain=0
-sbx.base-url=https://sbxcloud.com
-sbx.debug=false
-```
-
-Inject and use:
+### 1. Define Your Entity
 
 ```java
-@Service
-public class ContactService {
-    private final SBXService sbx;
+import com.sbxcloud.sbx.annotation.SbxModel;
+import com.sbxcloud.sbx.annotation.SbxEntity;
+import com.sbxcloud.sbx.model.SBXMeta;
 
-    public ContactService(SBXService sbx) {
-        this.sbx = sbx;
-    }
-
-    public List<Contact> findActiveContacts() {
-        var query = FindQuery.from("contact")
-            .andWhereIsEqualTo("status", "ACTIVE")
-            .setPageSize(100);
-
-        var response = sbx.find(query, Contact.class);
-        return response.success() ? response.results() : List.of();
-    }
-}
-```
-
-### Without Spring Boot
-
-```java
-// From environment variables
-var sbx = SBXServiceFactory.withEnv();
-
-// Or with custom configuration
-var sbx = SBXServiceFactory.builder()
-    .appKey("your-app-key")
-    .token("your-token")
-    .domain(0)
-    .baseUrl("https://sbxcloud.com")
-    .debug(true)
-    .build();
-```
-
-## Features
-
-### Data Operations (CRUD)
-
-#### Find
-
-```java
-// Simple query
-var query = FindQuery.from("contact")
-    .andWhereIsEqualTo("status", "ACTIVE")
-    .setPage(1)
-    .setPageSize(50);
-
-var response = sbx.find(query, Contact.class);
-
-// Find one
-var single = sbx.findOne(query, Contact.class);
-
-// Find all (auto-pagination)
-var all = sbx.findAll(query, Contact.class);
-
-// By keys
-var byKeys = FindQuery.from("contact")
-    .whereWithKeys("key1", "key2");
-```
-
-#### Query Builder
-
-```java
-FindQuery.from("contact")
-    // AND conditions
-    .newGroupWithAnd()
-    .andWhereIsEqualTo("status", "ACTIVE")
-    .andWhereIsGreaterThan("age", 18)
-    .andWhereIsIn("type", "A", "B", "C")
-    .andWhereContains("name", "John")
-    .andWhereIsNull("deletedAt")
-
-    // OR conditions
-    .newGroupWithOr()
-    .orWhereIsEqualTo("priority", "HIGH")
-    .orWhereIsLessThan("dueDate", LocalDate.now())
-
-    // Fetch related models
-    .fetchModels("account", "owner")
-    .fetchReferencingModels("tasks")
-    .setAutowire("account")
-
-    // Pagination
-    .setPage(1)
-    .setPageSize(50)
-    .compile();
-```
-
-#### Create
-
-```java
-var contact = Map.of(
-    "name", "John Doe",
-    "email", "john@example.com",
-    "status", "ACTIVE"
-);
-
-var response = sbx.create("contact", contact);
-if (response.success()) {
-    String newKey = response.keys().get(0);
-}
-```
-
-#### Update
-
-```java
-var updates = Map.of(
-    "_KEY", "existing-key",
-    "status", "INACTIVE"
-);
-
-sbx.update("contact", updates);
-```
-
-#### Delete
-
-```java
-sbx.delete("contact", "key-to-delete");
-sbx.delete("contact", List.of("key1", "key2", "key3"));
-```
-
-### Authentication
-
-```java
-// Login
-var result = sbx.login("user@example.com", "password");
-if (result.success()) {
-    String token = result.token();
-    SBXUser user = result.user();
-}
-
-// Validate session
-var session = sbx.validateSession();
-
-// Change password
-sbx.changePassword("currentPassword", "newPassword", userId);
-
-// Password reset flow
-sbx.sendPasswordResetRequest("user@example.com", "Reset Password", "email-template-key");
-sbx.resetPassword(userId, "reset-code", "newPassword");
-
-// Check email availability
-sbx.checkEmailAvailable("new@example.com");
-```
-
-### File Operations
-
-```java
-// Upload (base64 content)
-sbx.uploadFile("document.pdf", base64Content, folderKey);
-
-// Download
-byte[] content = sbx.downloadFile("file-key");
-
-// Delete
-sbx.deleteFile("file-key");
-```
-
-### Folder Operations
-
-```java
-// Create folder
-sbx.createFolder("New Folder", parentFolderKey);
-
-// List contents
-var contents = sbx.listFolder(folderKey);
-
-// Rename
-sbx.renameFolder(folderKey, "Renamed Folder");
-
-// Delete
-sbx.deleteFolder(folderKey);
-```
-
-### Email
-
-```java
-var email = EmailParams.builder()
-    .from("sender@example.com")
-    .to("recipient@example.com")
-    .subject("Hello")
-    .templateKey("email-template-key")
-    .data(Map.of("name", "John"))
-    .build();
-
-sbx.sendEmail(email);
-// or V2: sbx.sendEmailV2(email);
-```
-
-### Cloud Scripts
-
-```java
-// Run with parameters
-Map<String, Object> params = Map.of("inputParam", "value");
-MyResult result = sbx.runCloudScript("script-key", params, MyResult.class);
-
-// Run without parameters
-var result = sbx.runCloudScript("script-key", MyResult.class);
-
-// Test mode
-var result = sbx.runCloudScript("script-key", params, true, MyResult.class);
-```
-
-### Configuration
-
-```java
-// Load app configuration
-sbx.loadConfig();
-
-// Get cached config
-SBXConfig config = sbx.getConfig();
-List<SBXModel> models = config.models();
-Map<String, Object> properties = config.properties();
-```
-
-### Multi-domain Support
-
-```java
-// Create multi-domain service
-var sbx = SBXServiceFactory.multidomain("https://sbxcloud.com");
-
-// Switch credentials per tenant
-sbx.setMultidomainCredentials(domainId, appKey, token);
-
-// Update just the token
-sbx.setToken(newToken);
-```
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `SBX_APP_KEY` | Application key (UUID) |
-| `SBX_TOKEN` | Bearer token |
-| `SBX_DOMAIN` | Domain ID (numeric) |
-| `SBX_BASE_URL` | Base URL (without /api suffix) |
-
-## Repository Pattern (Recommended)
-
-The library provides a Spring Data-like repository pattern for type-safe, boilerplate-free data access.
-
-### Define Your Entity
-
-```java
-@SbxModel("contact")  // Single annotation does everything!
+@SbxModel("contact")  // Maps to SBX model name - handles all Jackson config
 public record Contact(
     String key,        // Auto-mapped to _KEY
     SBXMeta meta,      // Auto-mapped to _META
@@ -317,103 +52,180 @@ public record Contact(
     String email,
     String status
 ) implements SbxEntity {
-    // Convenience constructor for new entities
+
+    // Constructor for creating new records (without key/meta)
     public Contact(String name, String email, String status) {
         this(null, null, name, email, status);
     }
 }
 ```
 
-That's it. No `@JsonProperty`, `@JsonNaming`, or `@JsonIgnoreProperties` needed.
-
-### Use the Repository
+### 2. Initialize the Service
 
 ```java
-// Get a typed repository - model name inferred from @SbxModel
+// From environment variables (SBX_APP_KEY, SBX_TOKEN, SBX_DOMAIN, SBX_BASE_URL)
+var sbx = SBXServiceFactory.withEnv();
+
+// Or with explicit config
+var sbx = SBXServiceFactory.builder()
+    .appKey("your-app-key")
+    .token("your-token")
+    .domain(96)
+    .baseUrl("https://sbxcloud.com")
+    .build();
+```
+
+### 3. Use the Repository
+
+```java
+// Get typed repository
 SbxRepository<Contact> contacts = sbx.repository(Contact.class);
 
-// ========== Simple CRUD ==========
+// Create
+var contact = new Contact("John Doe", "john@example.com", "ACTIVE");
+String key = contacts.save(contact);
 
-// Find
-contacts.findAll();                           // All records
-contacts.findById("key123");                  // Returns Optional<Contact>
-contacts.findByIds("k1", "k2", "k3");        // Multiple keys
-contacts.existsById("key123");               // Boolean check
-contacts.count();                            // Total count
+// Read
+Optional<Contact> found = contacts.findById(key);
+List<Contact> all = contacts.findAll();
 
-// Save (insert or update automatically)
-var contact = new Contact("John", "john@example.com", "ACTIVE");
-String key = contacts.save(contact);          // Insert, returns new key
-
-var existing = contacts.findById(key).orElseThrow();
-var updated = new Contact(existing.key(), existing.meta(),
-    "John Updated", existing.email(), existing.status());
-contacts.save(updated);                       // Update (has key)
-
-contacts.saveAll(contact1, contact2);        // Batch save
+// Update
+var updated = new Contact(key, found.get().meta(), "John Updated", "john@example.com", "ACTIVE");
+contacts.save(updated);  // Has key, so updates
 
 // Delete
-contacts.delete(entity);                      // By entity
-contacts.deleteById("key123");               // By key
-contacts.deleteByIds("k1", "k2", "k3");      // Multiple keys
-contacts.deleteAll(entity1, entity2);        // Multiple entities
+contacts.deleteById(key);
+```
 
-// ========== Fluent Queries ==========
+---
 
-contacts.query()
+## Repository API
+
+### CRUD Operations
+
+```java
+SbxRepository<Contact> repo = sbx.repository(Contact.class);
+
+// Find
+repo.findById("key")              // Optional<Contact>
+repo.findByIds("k1", "k2")        // List<Contact>
+repo.findAll()                    // List<Contact>
+repo.findAll(page, pageSize)      // SBXFindResponse<Contact>
+repo.existsById("key")            // boolean
+repo.count()                      // long
+
+// Save (auto insert/update based on key presence)
+repo.save(entity)                 // String (returns key)
+repo.saveAll(e1, e2, e3)          // List<String>
+
+// Delete
+repo.delete(entity)               // void
+repo.deleteById("key")            // void
+repo.deleteByIds("k1", "k2")      // void
+repo.deleteAll(e1, e2)            // void
+```
+
+### Query Builder
+
+```java
+// Fluent queries
+repo.query()
     .where(q -> q
-        .newGroupWithAnd()
         .andWhereIsEqualTo("status", "ACTIVE")
         .andWhereIsGreaterThan("age", 18)
-        .newGroupWithOr()
-        .orWhereContains("name", "John"))
-    .fetch("account", "owner")
+        .andWhereContains("name", "John"))
+    .fetch("account", "department")
     .page(1, 50)
-    .list();                                  // Returns List<Contact>
-
-// Shorthand queries
-contacts.findWhere(q -> q.andWhereIsEqualTo("status", "ACTIVE"));
-
-contacts.query()
-    .whereEquals("status", "ACTIVE")         // Simple equality
-    .first();                                // Optional<Contact>
-
-contacts.query()
-    .whereKeys("k1", "k2")                   // By keys
     .list();
 
 // Query results
-contacts.query().where(...).count();         // Long
-contacts.query().where(...).exists();        // Boolean
-contacts.query().where(...).first();         // Optional<T>
-contacts.query().where(...).firstOrThrow();  // T or exception
-contacts.query().where(...).list();          // List<T> (all pages)
-contacts.query().where(...).listPage();      // List<T> (current page)
-contacts.query().where(...).execute();       // Full SBXFindResponse<T>
+repo.query().where(...).list()           // List<T> - all pages
+repo.query().where(...).listPage()       // List<T> - current page only
+repo.query().where(...).first()          // Optional<T>
+repo.query().where(...).firstOrThrow()   // T or exception
+repo.query().where(...).count()          // long
+repo.query().where(...).exists()         // boolean
+repo.query().where(...).execute()        // SBXFindResponse<T>
+
+// Shortcuts
+repo.findWhere(q -> q.andWhereIsEqualTo("status", "ACTIVE"))
+repo.query().whereEquals("status", "ACTIVE").first()
+repo.query().whereKeys("k1", "k2").list()
 ```
 
-### Annotations
-
-| Annotation | Purpose |
-|------------|---------|
-| `@SbxModel("model_name")` | Maps class to SBX model name |
-| `SbxEntity` interface | Provides `key()` and `meta()` for CRUD operations |
-
-## Model Classes
-
-The library uses Java records for immutable data classes:
+### Where Conditions
 
 ```java
-// With repository pattern (recommended) - single annotation
+// AND conditions
+.andWhereIsEqualTo(field, value)
+.andWhereIsNotEqualTo(field, value)
+.andWhereIsGreaterThan(field, value)
+.andWhereIsGreaterOrEqualTo(field, value)
+.andWhereIsLessThan(field, value)
+.andWhereIsLessOrEqualTo(field, value)
+.andWhereContains(field, "text")      // LIKE %text%
+.andWhereStartsWith(field, "text")    // LIKE text%
+.andWhereEndsWith(field, "text")      // LIKE %text
+.andWhereIsIn(field, "a", "b", "c")
+.andWhereIsNotIn(field, "a", "b")
+.andWhereIsNull(field)
+.andWhereIsNotNull(field)
+
+// OR conditions (same methods with "or" prefix)
+.orWhereIsEqualTo(field, value)
+// ...
+
+// Groups
+.newGroupWithAnd()   // Start AND group
+.newGroupWithOr()    // Start OR group
+
+// By keys
+.whereWithKeys("key1", "key2")
+```
+
+---
+
+## Entity Definition
+
+### Minimal (Recommended)
+
+```java
 @SbxModel("contact")
 public record Contact(
-    String key,        // auto → _KEY
-    SBXMeta meta,      // auto → _META
+    String key,
+    SBXMeta meta,
     String name,
     String email
 ) implements SbxEntity {}
+```
 
-// Without repository (manual Jackson annotations)
+The `@SbxModel` annotation automatically:
+- Sets the SBX model name for queries
+- Maps `key` → `_KEY` in JSON
+- Maps `meta` → `_META` in JSON
+- Ignores unknown JSON properties
+
+### With Convenience Constructor
+
+```java
+@SbxModel("contact")
+public record Contact(
+    String key,
+    SBXMeta meta,
+    String name,
+    String email
+) implements SbxEntity {
+
+    // For creating new records
+    public Contact(String name, String email) {
+        this(null, null, name, email);
+    }
+}
+```
+
+### Without Repository (Manual Jackson)
+
+```java
 public record Contact(
     @JsonProperty("_KEY") String key,
     @JsonProperty("_META") SBXMeta meta,
@@ -422,53 +234,142 @@ public record Contact(
 ) {}
 ```
 
-## Error Handling
+---
+
+## Direct Service API
+
+For advanced use cases, use `SBXService` directly:
 
 ```java
-var response = sbx.find(query, Contact.class);
-if (!response.success()) {
-    String error = response.getErrorMessage();
-    // Handle error
-}
+// Find
+var query = FindQuery.from(Contact.class)
+    .andWhereIsEqualTo("status", "ACTIVE")
+    .setPageSize(50);
+SBXFindResponse<Contact> response = sbx.find(query, Contact.class);
+
+// Create/Update (with Map)
+sbx.create("contact", Map.of("name", "John", "email", "john@example.com"));
+sbx.update("contact", Map.of("_KEY", "existing-key", "name", "Updated"));
+
+// Delete
+sbx.delete("contact", "key-to-delete");
+sbx.delete("contact", List.of("k1", "k2", "k3"));
 ```
 
-## Building from Source
-
-```bash
-mvn clean install
-```
+---
 
 ## Utilities
 
 ```java
 import static com.sbxcloud.sbx.util.Sbx.*;
 
-// Convert to JSON
+// JSON conversion
 String json = toJson(entity);
 String pretty = toPrettyJson(entity);
-
-// Parse JSON
 Contact contact = fromJson(json, Contact.class);
 
-// Convert to/from Map
+// Map conversion
 Map<String, Object> map = toMap(entity);
 Contact fromMap = fromMap(map, Contact.class);
 ```
 
-## Design Philosophy
+---
 
-This library is a Java 21 translation of the [TypeScript SBX client](https://github.com/nicosoto0/sbx-lib-ts), adapted to use modern Java idioms:
+## Spring Boot Integration
 
-| TypeScript | Java 21 |
-|------------|---------|
-| Generic functions | Generic methods with type inference |
-| Interfaces | Records + sealed interfaces |
-| `async/await` | Synchronous (Spring WebClient compatible) |
-| Dynamic typing | `@SbxModel` annotations + `SbxEntity` interface |
-| Object spread | Record `with` patterns / constructors |
-| Optional chaining | `Optional<T>` |
+### Configuration
 
-The repository pattern provides Spring Data-like ergonomics while the underlying `SBXService` remains available for advanced use cases.
+```properties
+# application.properties
+sbx.app-key=your-app-key-uuid
+sbx.token=your-bearer-token
+sbx.domain=96
+sbx.base-url=https://sbxcloud.com
+sbx.debug=false
+```
+
+### Usage
+
+```java
+@Service
+public class ContactService {
+    private final SbxRepository<Contact> contacts;
+
+    public ContactService(SBXService sbx) {
+        this.contacts = sbx.repository(Contact.class);
+    }
+
+    public List<Contact> findActive() {
+        return contacts.findWhere(q -> q.andWhereIsEqualTo("status", "ACTIVE"));
+    }
+
+    public Contact create(String name, String email) {
+        var contact = new Contact(name, email, "ACTIVE");
+        String key = contacts.save(contact);
+        return contacts.findById(key).orElseThrow();
+    }
+}
+```
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `SBX_APP_KEY` | Application key (UUID) |
+| `SBX_TOKEN` | Bearer token |
+| `SBX_DOMAIN` | Domain ID (integer) |
+| `SBX_BASE_URL` | Base URL (e.g., `https://sbxcloud.com`) |
+
+---
+
+## Additional Features
+
+### Authentication
+
+```java
+sbx.login("user@example.com", "password");
+sbx.validateSession();
+sbx.changePassword("current", "new", userId);
+```
+
+### Files
+
+```java
+sbx.uploadFile("doc.pdf", base64Content, folderKey);
+byte[] content = sbx.downloadFile("file-key");
+sbx.deleteFile("file-key");
+```
+
+### Folders
+
+```java
+sbx.createFolder("New Folder", parentKey);
+sbx.listFolder(folderKey);
+sbx.renameFolder(key, "New Name");
+sbx.deleteFolder(key);
+```
+
+### Email
+
+```java
+var email = EmailParams.builder()
+    .to("recipient@example.com")
+    .subject("Hello")
+    .templateKey("template-key")
+    .data(Map.of("name", "John"))
+    .build();
+sbx.sendEmail(email);
+```
+
+### Cloud Scripts
+
+```java
+var result = sbx.runCloudScript("script-key", Map.of("param", "value"), ResultType.class);
+```
+
+---
 
 ## License
 
