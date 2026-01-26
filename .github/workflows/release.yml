@@ -1,0 +1,196 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+      bump:
+        description: 'Version bump type (if no version specified)'
+        required: false
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get current version
+        id: current_version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed 's/-SNAPSHOT//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Calculate next version
+        id: next_version
+        run: |
+          CURRENT="${{ steps.current_version.outputs.version }}"
+
+          if [ -n "${{ inputs.version }}" ]; then
+            NEXT="${{ inputs.version }}"
+          else
+            IFS='.' read -ra PARTS <<< "$CURRENT"
+            MAJOR=${PARTS[0]}
+            MINOR=${PARTS[1]}
+            PATCH=${PARTS[2]}
+
+            BUMP="${{ inputs.bump }}"
+            if [ -z "$BUMP" ]; then
+              BUMP="patch"
+            fi
+
+            case $BUMP in
+              major)
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+                PATCH=0
+                ;;
+              minor)
+                MINOR=$((MINOR + 1))
+                PATCH=0
+                ;;
+              patch)
+                PATCH=$((PATCH + 1))
+                ;;
+            esac
+
+            NEXT="$MAJOR.$MINOR.$PATCH"
+          fi
+
+          echo "version=$NEXT" >> $GITHUB_OUTPUT
+          echo "Next version: $NEXT"
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.next_version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag v${{ steps.next_version.outputs.version }} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update version in pom.xml
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          mvn versions:set -DnewVersion=${{ steps.next_version.outputs.version }} -DgenerateBackupPoms=false
+
+      - name: Build and test
+        if: steps.check_tag.outputs.exists == 'false'
+        run: mvn -B clean verify
+
+      - name: Generate changelog
+        if: steps.check_tag.outputs.exists == 'false'
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges | head -50)
+          else
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+
+          # Write to file to handle multiline
+          echo "## What's Changed" > CHANGELOG_BODY.md
+          echo "" >> CHANGELOG_BODY.md
+          echo "$COMMITS" >> CHANGELOG_BODY.md
+          echo "" >> CHANGELOG_BODY.md
+          echo "## Installation" >> CHANGELOG_BODY.md
+          echo "" >> CHANGELOG_BODY.md
+          echo '```xml' >> CHANGELOG_BODY.md
+          echo '<repositories>' >> CHANGELOG_BODY.md
+          echo '    <repository>' >> CHANGELOG_BODY.md
+          echo '        <id>jitpack.io</id>' >> CHANGELOG_BODY.md
+          echo '        <url>https://jitpack.io</url>' >> CHANGELOG_BODY.md
+          echo '    </repository>' >> CHANGELOG_BODY.md
+          echo '</repositories>' >> CHANGELOG_BODY.md
+          echo '' >> CHANGELOG_BODY.md
+          echo '<dependency>' >> CHANGELOG_BODY.md
+          echo '    <groupId>com.github.sbxcloud</groupId>' >> CHANGELOG_BODY.md
+          echo '    <artifactId>sbx-lib-java</artifactId>' >> CHANGELOG_BODY.md
+          echo "    <version>v${{ steps.next_version.outputs.version }}</version>" >> CHANGELOG_BODY.md
+          echo '</dependency>' >> CHANGELOG_BODY.md
+          echo '```' >> CHANGELOG_BODY.md
+
+      - name: Commit version bump
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git add pom.xml
+          git commit -m "chore: release v${{ steps.next_version.outputs.version }}"
+          git push
+
+      - name: Create and push tag
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git tag -a "v${{ steps.next_version.outputs.version }}" -m "Release v${{ steps.next_version.outputs.version }}"
+          git push origin "v${{ steps.next_version.outputs.version }}"
+
+      - name: Build release artifacts
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          mvn -B package -DskipTests
+          mvn source:jar javadoc:jar
+
+      - name: Create GitHub Release
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.next_version.outputs.version }}
+          name: v${{ steps.next_version.outputs.version }}
+          body_path: CHANGELOG_BODY.md
+          draft: false
+          prerelease: false
+          files: |
+            target/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update to next SNAPSHOT
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          IFS='.' read -ra PARTS <<< "${{ steps.next_version.outputs.version }}"
+          NEXT_PATCH=$((PARTS[2] + 1))
+          NEXT_SNAPSHOT="${PARTS[0]}.${PARTS[1]}.$NEXT_PATCH-SNAPSHOT"
+
+          mvn versions:set -DnewVersion=$NEXT_SNAPSHOT -DgenerateBackupPoms=false
+          git add pom.xml
+          git commit -m "chore: prepare for next development iteration"
+          git push
+
+      - name: Trigger JitPack build
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          echo "JitPack will automatically build from tag v${{ steps.next_version.outputs.version }}"
+          echo "Check status at: https://jitpack.io/#socobox/sbxcloud-lib-java/v${{ steps.next_version.outputs.version }}"
