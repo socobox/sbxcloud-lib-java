@@ -18,6 +18,10 @@ public record InventoryHistory(
         Double price,
         Integer quantity
 ) implements SbxEntity {
+
+    /**
+     * Convenience constructor for creating new entities (without key/meta).
+     */
     public InventoryHistory(String masterlist, Integer week, Double price, Integer quantity) {
         this(null, null, masterlist, week, price, quantity);
     }

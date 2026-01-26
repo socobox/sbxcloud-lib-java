@@ -4,6 +4,7 @@ import com.sbxcloud.sbx.client.SBXService;
 import com.sbxcloud.sbx.client.SBXServiceFactory;
 import com.sbxcloud.sbx.model.InventoryHistory;
 import com.sbxcloud.sbx.query.FindQuery;
+import com.sbxcloud.sbx.repository.SbxRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
@@ -294,5 +295,108 @@ class SBXIntegrationTest {
 
         assertTrue(response.success(), "Delete with class and key should succeed: " + response.error());
         System.out.println("Deleted with class and key: " + keyToDelete);
+    }
+
+    // ==================== Repository Pattern Tests ====================
+
+    @Test
+    @Order(20)
+    void testRepositoryFindAll() {
+        SbxRepository<InventoryHistory> repo = sbx.repository(InventoryHistory.class);
+
+        var results = repo.findAll();
+
+        assertNotNull(results);
+        System.out.println("Repository findAll: " + results.size() + " records");
+    }
+
+    @Test
+    @Order(21)
+    void testRepositorySaveAndFindById() {
+        SbxRepository<InventoryHistory> repo = sbx.repository(InventoryHistory.class);
+
+        // Create
+        var entity = new InventoryHistory("repo-test-" + System.currentTimeMillis(), 20250126, 5.99, 25);
+        String key = repo.save(entity);
+
+        assertNotNull(key);
+        System.out.println("Repository saved with key: " + key);
+
+        // Find by ID
+        var found = repo.findById(key);
+        assertTrue(found.isPresent());
+        assertEquals(key, found.get().key());
+        System.out.println("Repository findById: " + found.get().masterlist());
+
+        // Update
+        var updated = new InventoryHistory(key, found.get().meta(),
+                found.get().masterlist(), found.get().week(), 9.99, 50);
+        repo.save(updated);
+
+        // Verify update
+        var afterUpdate = repo.findById(key);
+        assertTrue(afterUpdate.isPresent());
+        assertEquals(9.99, afterUpdate.get().price());
+        System.out.println("Repository updated price to: " + afterUpdate.get().price());
+
+        // Delete
+        repo.deleteById(key);
+
+        // Verify delete
+        assertFalse(repo.existsById(key));
+        System.out.println("Repository deleted: " + key);
+    }
+
+    @Test
+    @Order(22)
+    void testRepositoryQueryBuilder() {
+        SbxRepository<InventoryHistory> repo = sbx.repository(InventoryHistory.class);
+
+        // Fluent query
+        var results = repo.query()
+                .where(q -> q.andWhereIsGreaterThan("quantity", 0))
+                .page(1, 10)
+                .list();
+
+        assertNotNull(results);
+        System.out.println("Repository query found: " + results.size() + " records with quantity > 0");
+    }
+
+    @Test
+    @Order(23)
+    void testRepositoryQueryFirst() {
+        SbxRepository<InventoryHistory> repo = sbx.repository(InventoryHistory.class);
+
+        var first = repo.query()
+                .where(q -> q.andWhereIsGreaterThan("price", 0))
+                .first();
+
+        if (first.isPresent()) {
+            System.out.println("Repository query first: " + first.get().key() + " price=" + first.get().price());
+        } else {
+            System.out.println("Repository query first: no results");
+        }
+    }
+
+    @Test
+    @Order(24)
+    void testRepositoryCount() {
+        SbxRepository<InventoryHistory> repo = sbx.repository(InventoryHistory.class);
+
+        long count = repo.count();
+
+        System.out.println("Repository count: " + count + " total records");
+    }
+
+    @Test
+    @Order(25)
+    void testRepositoryFindWhere() {
+        SbxRepository<InventoryHistory> repo = sbx.repository(InventoryHistory.class);
+
+        // Simple findWhere
+        var results = repo.findWhere(q -> q.andWhereIsGreaterThan("week", 0));
+
+        assertNotNull(results);
+        System.out.println("Repository findWhere: " + results.size() + " records with week > 0");
     }
 }

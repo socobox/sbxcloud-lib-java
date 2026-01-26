@@ -8,8 +8,10 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.sbxcloud.sbx.annotation.SbxEntity;
 import com.sbxcloud.sbx.annotation.SbxModels;
 import com.sbxcloud.sbx.exception.SBXException;
+import com.sbxcloud.sbx.jackson.SbxModule;
 import com.sbxcloud.sbx.model.*;
 import com.sbxcloud.sbx.query.FindQuery;
+import com.sbxcloud.sbx.repository.SbxRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -52,6 +54,37 @@ public class SBXService {
 
         this.objectMapper = createObjectMapper();
         this.restClient = createRestClient();
+    }
+
+    // ==================== Repository Factory ====================
+
+    /**
+     * Creates a type-safe repository for the given entity class.
+     * <p>
+     * The entity class must be annotated with @SbxModel and implement SbxEntity.
+     *
+     * <pre>{@code
+     * SbxRepository<InventoryHistory> repo = sbx.repository(InventoryHistory.class);
+     *
+     * // Simple CRUD
+     * repo.findAll();
+     * repo.findById("key123");
+     * repo.save(entity);
+     * repo.delete(entity);
+     *
+     * // Fluent queries
+     * repo.query()
+     *     .where(q -> q.andWhereIsGreaterThan("price", 10))
+     *     .fetch("masterlist")
+     *     .page(1, 50)
+     *     .list();
+     * }</pre>
+     *
+     * @param entityType class annotated with @SbxModel, implementing SbxEntity
+     * @return typed repository for the entity
+     */
+    public <T extends SbxEntity> SbxRepository<T> repository(Class<T> entityType) {
+        return new SbxRepository<>(this, entityType);
     }
 
     // ==================== Data Operations ====================
@@ -907,6 +940,7 @@ public class SBXService {
     private ObjectMapper createObjectMapper() {
         return new ObjectMapper()
                 .registerModule(new JavaTimeModule())
+                .registerModule(new SbxModule())
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
     }

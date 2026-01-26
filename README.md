@@ -302,12 +302,108 @@ sbx.setToken(newToken);
 | `SBX_DOMAIN` | Domain ID (numeric) |
 | `SBX_BASE_URL` | Base URL (without /api suffix) |
 
+## Repository Pattern (Recommended)
+
+The library provides a Spring Data-like repository pattern for type-safe, boilerplate-free data access.
+
+### Define Your Entity
+
+```java
+@SbxModel("contact")  // Maps to SBX model name
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record Contact(
+    @JsonProperty("_KEY") String key,
+    @JsonProperty("_META") SBXMeta meta,
+    String name,
+    String email,
+    String status
+) implements SbxEntity {
+    // Convenience constructor for new entities
+    public Contact(String name, String email, String status) {
+        this(null, null, name, email, status);
+    }
+}
+```
+
+### Use the Repository
+
+```java
+// Get a typed repository - model name inferred from @SbxModel
+SbxRepository<Contact> contacts = sbx.repository(Contact.class);
+
+// ========== Simple CRUD ==========
+
+// Find
+contacts.findAll();                           // All records
+contacts.findById("key123");                  // Returns Optional<Contact>
+contacts.findByIds("k1", "k2", "k3");        // Multiple keys
+contacts.existsById("key123");               // Boolean check
+contacts.count();                            // Total count
+
+// Save (insert or update automatically)
+var contact = new Contact("John", "john@example.com", "ACTIVE");
+String key = contacts.save(contact);          // Insert, returns new key
+
+var existing = contacts.findById(key).orElseThrow();
+var updated = new Contact(existing.key(), existing.meta(),
+    "John Updated", existing.email(), existing.status());
+contacts.save(updated);                       // Update (has key)
+
+contacts.saveAll(contact1, contact2);        // Batch save
+
+// Delete
+contacts.delete(entity);                      // By entity
+contacts.deleteById("key123");               // By key
+contacts.deleteByIds("k1", "k2", "k3");      // Multiple keys
+contacts.deleteAll(entity1, entity2);        // Multiple entities
+
+// ========== Fluent Queries ==========
+
+contacts.query()
+    .where(q -> q
+        .newGroupWithAnd()
+        .andWhereIsEqualTo("status", "ACTIVE")
+        .andWhereIsGreaterThan("age", 18)
+        .newGroupWithOr()
+        .orWhereContains("name", "John"))
+    .fetch("account", "owner")
+    .page(1, 50)
+    .list();                                  // Returns List<Contact>
+
+// Shorthand queries
+contacts.findWhere(q -> q.andWhereIsEqualTo("status", "ACTIVE"));
+
+contacts.query()
+    .whereEquals("status", "ACTIVE")         // Simple equality
+    .first();                                // Optional<Contact>
+
+contacts.query()
+    .whereKeys("k1", "k2")                   // By keys
+    .list();
+
+// Query results
+contacts.query().where(...).count();         // Long
+contacts.query().where(...).exists();        // Boolean
+contacts.query().where(...).first();         // Optional<T>
+contacts.query().where(...).firstOrThrow();  // T or exception
+contacts.query().where(...).list();          // List<T> (all pages)
+contacts.query().where(...).listPage();      // List<T> (current page)
+contacts.query().where(...).execute();       // Full SBXFindResponse<T>
+```
+
+### Annotations
+
+| Annotation | Purpose |
+|------------|---------|
+| `@SbxModel("model_name")` | Maps class to SBX model name |
+| `SbxEntity` interface | Provides `key()` and `meta()` for CRUD operations |
+
 ## Model Classes
 
 The library uses Java records for immutable data classes:
 
 ```java
-// Your domain model
+// Simple model (without repository pattern)
 public record Contact(
     @JsonProperty("_KEY") String key,
     String name,
@@ -315,6 +411,17 @@ public record Contact(
     String status,
     @JsonProperty("_META") SBXMeta meta
 ) {}
+
+// With repository pattern
+@SbxModel("contact")
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record Contact(
+    @JsonProperty("_KEY") String key,
+    @JsonProperty("_META") SBXMeta meta,
+    String name,
+    String email,
+    String status
+) implements SbxEntity {}
 ```
 
 ## Error Handling
@@ -332,6 +439,38 @@ if (!response.success()) {
 ```bash
 mvn clean install
 ```
+
+## Utilities
+
+```java
+import static com.sbxcloud.sbx.util.Sbx.*;
+
+// Convert to JSON
+String json = toJson(entity);
+String pretty = toPrettyJson(entity);
+
+// Parse JSON
+Contact contact = fromJson(json, Contact.class);
+
+// Convert to/from Map
+Map<String, Object> map = toMap(entity);
+Contact fromMap = fromMap(map, Contact.class);
+```
+
+## Design Philosophy
+
+This library is a Java 21 translation of the [TypeScript SBX client](https://github.com/nicosoto0/sbx-lib-ts), adapted to use modern Java idioms:
+
+| TypeScript | Java 21 |
+|------------|---------|
+| Generic functions | Generic methods with type inference |
+| Interfaces | Records + sealed interfaces |
+| `async/await` | Synchronous (Spring WebClient compatible) |
+| Dynamic typing | `@SbxModel` annotations + `SbxEntity` interface |
+| Object spread | Record `with` patterns / constructors |
+| Optional chaining | `Optional<T>` |
+
+The repository pattern provides Spring Data-like ergonomics while the underlying `SBXService` remains available for advanced use cases.
 
 ## License
 
