@@ -2,7 +2,10 @@ package com.sbxcloud.sbx.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.sbxcloud.sbx.annotation.SbxModels;
+import com.sbxcloud.sbx.util.Sbx;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -48,5 +51,75 @@ public record SBXFindResponse<T>(
      */
     public boolean hasMorePages(int currentPage) {
         return totalPages != null && currentPage < totalPages;
+    }
+
+    /**
+     * Gets fetched related entities as a typed list.
+     * <p>
+     * When using fetchModels() in your query, related entities are returned
+     * in fetchedResults. This method converts them to typed objects.
+     *
+     * <pre>{@code
+     * var query = FindQuery.from(CartBox.class)
+     *     .fetchModels("purchase")
+     *     .andWhereIsNotNull("purchase");
+     *
+     * var response = sbx.find(query);
+     * List<CartBox> boxes = response.results();
+     * List<Purchase> purchases = response.getFetched(Purchase.class);
+     * }</pre>
+     *
+     * @param type class annotated with @SbxModel
+     * @return list of typed entities, or empty list if none found
+     */
+    public <F> List<F> getFetched(Class<F> type) {
+        if (fetchedResults == null) {
+            return List.of();
+        }
+
+        String modelName = SbxModels.getModelName(type);
+        Map<String, Object> modelData = fetchedResults.get(modelName);
+
+        if (modelData == null || modelData.isEmpty()) {
+            return List.of();
+        }
+
+        List<F> result = new ArrayList<>();
+        for (Object value : modelData.values()) {
+            result.add(Sbx.mapper().convertValue(value, type));
+        }
+        return result;
+    }
+
+    /**
+     * Gets a single fetched entity by its key.
+     *
+     * <pre>{@code
+     * var box = response.results().get(0);
+     * Purchase purchase = response.getFetchedByKey(Purchase.class, box.purchase());
+     * }</pre>
+     *
+     * @param type class annotated with @SbxModel
+     * @param key  the entity key
+     * @return the typed entity, or null if not found
+     */
+    public <F> F getFetchedByKey(Class<F> type, String key) {
+        if (fetchedResults == null || key == null) {
+            return null;
+        }
+
+        String modelName = SbxModels.getModelName(type);
+        Map<String, Object> modelData = fetchedResults.get(modelName);
+
+        if (modelData == null) {
+            return null;
+        }
+
+        Object value = modelData.get(key);
+        if (value == null) {
+            return null;
+        }
+
+        return Sbx.mapper().convertValue(value, type);
     }
 }

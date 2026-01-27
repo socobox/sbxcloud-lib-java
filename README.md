@@ -17,7 +17,7 @@ Java 21+ client for SBX Cloud APIs. Spring Boot 3.x compatible.
 <dependency>
     <groupId>com.github.socobox</groupId>
     <artifactId>sbxcloud-lib-java</artifactId>
-    <version>v0.0.14</version>
+    <version>v0.0.15</version>
 </dependency>
 ```
 
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.14'
+    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.15'
 }
 ```
 
@@ -145,6 +145,13 @@ repo.query().where(...).firstOrThrow()   // T or exception
 repo.query().where(...).count()          // long
 repo.query().where(...).exists()         // boolean
 repo.query().where(...).execute()        // SBXFindResponse<T>
+
+// Fetching related entities (type-safe!)
+var response = repo.query()
+    .fetch("account", "department")
+    .execute();
+List<Account> accounts = response.getFetched(Account.class);
+Account acc = response.getFetchedByKey(Account.class, contact.account());
 
 // Shortcuts
 repo.findWhere(q -> q.andWhereIsEqualTo("status", "ACTIVE"))

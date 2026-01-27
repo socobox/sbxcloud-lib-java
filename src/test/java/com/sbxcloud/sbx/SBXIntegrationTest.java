@@ -188,13 +188,14 @@ class SBXIntegrationTest {
     @Order(10)
     void testFindWithAnnotatedClass() {
         // Uses @SbxModel annotation to infer model name
+        // Type is inferred - no need to pass class twice!
         var query = FindQuery.from(InventoryHistory.class)
                 .setPageSize(5);
 
-        var response = sbx.find(query, InventoryHistory.class);
+        var response = sbx.find(query);  // Type inferred from query
 
         assertTrue(response.success(), "Find with annotated class should succeed: " + response.error());
-        System.out.println("Found " + (response.results() != null ? response.results().size() : 0) + " records using @SbxModel");
+        System.out.println("Found " + (response.results() != null ? response.results().size() : 0) + " records using typed FindQuery");
     }
 
     @Test
