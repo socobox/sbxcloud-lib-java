@@ -90,9 +90,32 @@ public class SBXService {
     // ==================== Data Operations ====================
 
     /**
+     * Finds records matching the typed query.
+     * Type is inferred from FindQuery - no need to pass class twice.
+     *
+     * <pre>{@code
+     * var query = FindQuery.from(Contact.class)
+     *     .andWhereIsEqualTo("status", "ACTIVE");
+     *
+     * var response = sbx.find(query);  // Type inferred!
+     * }</pre>
+     *
+     * @throws IllegalStateException if query was created with from(String) instead of from(Class)
+     */
+    @SuppressWarnings("unchecked")
+    public <T> SBXFindResponse<T> find(FindQuery<T> query) {
+        Class<T> type = query.getType();
+        if (type == null) {
+            throw new IllegalStateException(
+                    "Query created with from(String) - use find(query, Class) instead or use from(Class)");
+        }
+        return find(query.compile(), type);
+    }
+
+    /**
      * Finds records matching the query.
      */
-    public <T> SBXFindResponse<T> find(FindQuery query, Class<T> type) {
+    public <T> SBXFindResponse<T> find(FindQuery<?> query, Class<T> type) {
         return find(query.compile(), type);
     }
 
@@ -120,17 +143,37 @@ public class SBXService {
     }
 
     /**
+     * Finds a single record matching the typed query (sets page size to 1).
+     */
+    public <T> SBXFindResponse<T> findOne(FindQuery<T> query) {
+        query.setPageSize(1);
+        return find(query);
+    }
+
+    /**
      * Finds a single record matching the query (sets page size to 1).
      */
-    public <T> SBXFindResponse<T> findOne(FindQuery query, Class<T> type) {
+    public <T> SBXFindResponse<T> findOne(FindQuery<?> query, Class<T> type) {
         query.setPageSize(1);
         return find(query, type);
     }
 
     /**
+     * Finds all records matching the typed query, automatically handling pagination.
+     */
+    public <T> SBXFindResponse<T> findAll(FindQuery<T> query) {
+        Class<T> type = query.getType();
+        if (type == null) {
+            throw new IllegalStateException(
+                    "Query created with from(String) - use findAll(query, Class) instead");
+        }
+        return findAll(query, type);
+    }
+
+    /**
      * Finds all records matching the query, automatically handling pagination.
      */
-    public <T> SBXFindResponse<T> findAll(FindQuery query, Class<T> type) {
+    public <T> SBXFindResponse<T> findAll(FindQuery<?> query, Class<T> type) {
         List<T> allResults = new ArrayList<>();
         Map<String, Map<String, Object>> allFetchedResults = new HashMap<>();
 

@@ -17,7 +17,7 @@ Java 21+ client for SBX Cloud APIs. Spring Boot 3.x compatible.
 <dependency>
     <groupId>com.github.socobox</groupId>
     <artifactId>sbxcloud-lib-java</artifactId>
-    <version>v0.0.13</version>
+    <version>v0.0.14</version>
 </dependency>
 ```
 
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.13'
+    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.14'
 }
 ```
 
@@ -238,11 +238,11 @@ public record Contact(
 For advanced use cases, use `SBXService` directly:
 
 ```java
-// Find
+// Find - type is inferred, no need to pass class twice!
 var query = FindQuery.from(Contact.class)
     .andWhereIsEqualTo("status", "ACTIVE")
     .setPageSize(50);
-SBXFindResponse<Contact> response = sbx.find(query, Contact.class);
+var response = sbx.find(query);  // Returns SBXFindResponse<Contact>
 
 // Create/Update (with Map)
 sbx.create("contact", Map.of("name", "John", "email", "john@example.com"));
