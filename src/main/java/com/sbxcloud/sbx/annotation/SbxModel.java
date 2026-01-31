@@ -2,6 +2,7 @@ package com.sbxcloud.sbx.annotation;
 
 import com.fasterxml.jackson.annotation.JacksonAnnotationsInside;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.sbxcloud.sbx.jackson.SbxNamingStrategy;
 
@@ -48,6 +49,7 @@ import java.lang.annotation.Target;
 @JacksonAnnotationsInside
 @JsonNaming(SbxNamingStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public @interface SbxModel {
     /**
      * The SBX row_model name.

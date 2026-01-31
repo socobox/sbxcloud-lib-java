@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Request payload for create/update operations.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.ALWAYS)
 public record SBXUpsertRequest(
         @JsonProperty("row_model") String rowModel,
         String domain,

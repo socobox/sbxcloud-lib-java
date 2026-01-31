@@ -916,25 +916,22 @@ public class SBXService {
     /**
      * Cleans a row for create/update:
      * - Removes _META/meta (read-only)
-     * - Removes null values (allows partial updates)
+     * <p>
+     * Null values are preserved so fields can be explicitly cleared.
+     * For entity-based updates, nulls are already stripped by @SbxModel's
+     * {@code @JsonInclude(NON_NULL)} during entity-to-Map conversion.
      */
     private Map<String, Object> cleanForUpsert(Map<String, Object> row) {
         var cleaned = new LinkedHashMap<String, Object>();
         for (var entry : row.entrySet()) {
             String key = entry.getKey();
-            Object value = entry.getValue();
 
             // Skip meta fields (read-only)
             if ("_META".equals(key) || "meta".equals(key)) {
                 continue;
             }
 
-            // Skip null values (allows partial updates)
-            if (value == null) {
-                continue;
-            }
-
-            cleaned.put(key, value);
+            cleaned.put(key, entry.getValue());
         }
         return cleaned;
     }

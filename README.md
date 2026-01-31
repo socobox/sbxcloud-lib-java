@@ -17,7 +17,7 @@ Java 21+ client for SBX Cloud APIs. Spring Boot 3.x compatible.
 <dependency>
     <groupId>com.github.socobox</groupId>
     <artifactId>sbxcloud-lib-java</artifactId>
-    <version>v0.0.15</version>
+    <version>v0.0.16</version>
 </dependency>
 ```
 
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.15'
+    implementation 'com.github.socobox:sbxcloud-lib-java:v0.0.16'
 }
 ```
 
